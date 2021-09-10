@@ -11,7 +11,7 @@ def simulate():
     LOGIN_USERNAME_XPATH    = "//*[@id='username']"
     LOGIN_PASSWORD_XPATH    = "//*[@id='pin']"
     LOGIN_BUTTON_XPATH      = "/html/body/div[2]/div/div/div/div/form/input[4]"
-    OPEN_TIME_CARD_XPATH    = "/html/body/div/table[2]/tbody/tr/td[2]/table[1]/tbody/tr[1]/td/b"
+    OPEN_TIME_CARD_XPATH    = "/html/body/div/table[2]/tbody/tr/td[2]/p[1]"
     ADD_TIME_TEXT           = "Add Time"
     CLEAR_DATETIME_IN       = "/html/body/div/table[2]/tbody/tr/td/form/table/tbody/tr[4]/td[2]/a[2]"
     CLEAR_DATETIME_OUT      = "/html/body/div/table[2]/tbody/tr/td/form/table/tbody/tr[5]/td[2]/a[2]"
@@ -34,9 +34,9 @@ def simulate():
     #generate times
     wait.until(EC.presence_of_element_located((By.XPATH, OPEN_TIME_CARD_XPATH)))
     timecard_string = driver.find_element_by_xpath(OPEN_TIME_CARD_XPATH).text
-    dates = re.findall("([0-9]{2}/[0-9]{2}/[0-9]{4})", timecard_string)
-    
+    dates = re.compile("Current pay period is (.*) - (.*).").findall(timecard_string)[0]
     times = generate_times(dates[0], dates[1])
+    print(f'times generated {times}')
 
     #fill hours
     for time in times:
@@ -54,20 +54,20 @@ def simulate():
 def generate_times(start_date, end_date):
     # list of start time (14 days) and list of hours worked (14 days)
     start_times = [
-          "9:00 AM",    #day 1
-          "9:00 PM",    #day 2
-          "9:00 PM",    #day 3
-          "9:00 PM",    #day 4
-          "9:00 PM",    #day 5
-          "9:00 PM",    #day 6
-          "9:00 PM",    #day 7
-          "9:00 PM",    #day 8
-          "9:00 PM",    #day 9
-          "9:00 PM",    #day 10
-          "9:00 PM",    #day 11
-          "9:00 PM",    #day 12
-          "9:00 PM",    #day 13
-          "9:00 PM",    #day 14
+          "9:00 AM",    #day 1      Sunday
+          "9:00 PM",    #day 2      Monday
+          "9:00 PM",    #day 3      Tuesday
+          "9:00 PM",    #day 4      Wednesday
+          "9:00 PM",    #day 5      Thursday
+          "10:00 AM",   #day 6      Friday
+          "9:00 PM",    #day 7      Saturday
+          "9:00 PM",    #day 8      Sunday
+          "9:00 PM",    #day 9      Monday
+          "9:00 PM",    #day 10     Tuesday
+          "9:00 PM",    #day 11     Wednesday
+          "9:00 PM",    #day 12     Thursday
+          "10:00 AM",   #day 13     Friday
+          "9:00 PM",    #day 14     Saturday
     ]
     hours = [
         1.5,#day 1
@@ -75,32 +75,33 @@ def generate_times(start_date, end_date):
         0,  #day 3
         0,  #day 4
         0,  #day 5
-        0,  #day 6
+        0.5,#day 6
         0,  #day 7
         0,  #day 8
         0,  #day 9
         2,  #day 10
         0,  #day 11
         0,  #day 12
-        0,  #day 13
+        0.5,#day 13
         1,  #day 14
     ]
     format_datetime = '%m/%d/%Y %I:%M %p'
     format_date     = "%m/%d/%Y"
+    format_calendar = "%B %d"
     format_time     = "%I:%M %p"
-    start_date = datetime.strptime(start_date, format_date) 
-    end_date = datetime.strptime(end_date, format_date) 
+    start_date = datetime.strptime(start_date, format_calendar).replace(year=datetime.now().year)
+    end_date = datetime.strptime(end_date, format_calendar).replace(year=datetime.now().year) 
     times = []
-    for idx, val in enumerate(start_times):
-        if hours[idx] == 0:
+    for index in range(0, len(start_times)):
+        if hours[index] == 0:
             continue    
 
-        start_date = start_date + timedelta(days=idx)
-        if start_date > end_date:
+        current_date = start_date + timedelta(days=index)
+        if current_date > end_date:
             break
 
-        begin_datetime  = datetime.strptime(start_date.strftime(format_date) + " " + start_times[idx], format_datetime)
-        end_datetime    = begin_datetime + timedelta(hours=hours[idx])
+        begin_datetime  = datetime.strptime(current_date.strftime(format_date) + " " + start_times[index], format_datetime)
+        end_datetime    = begin_datetime + timedelta(hours=hours[index])
 
         begin_time = begin_datetime.strftime(format_datetime)
         end_time = end_datetime.strftime(format_datetime)
