@@ -3,11 +3,16 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 import re
+import json
 
+def read_cookies():
+    return json.load(open('cookie.json'))["cookies"]
+    
 def simulate():
     WORK_STUDY_URL          = "https://my.depauw.edu/e/student/employment/"
+    DUMMY_URL               = "https://my.depauw.edu/a"
     LOGIN_USERNAME_XPATH    = "//*[@id='username']"
     LOGIN_PASSWORD_XPATH    = "//*[@id='pin']"
     LOGIN_BUTTON_XPATH      = "/html/body/div[2]/div/div/div/div/form/input[4]"
@@ -22,16 +27,18 @@ def simulate():
     USERNAME = ''
     PASSWORD = ''
 
-    driver = webdriver.Chrome('./chromedriver.exe')
+    driver = webdriver.Chrome('../selenium-drivers/windows-chromedriver-95.exe')
     wait = WebDriverWait(driver, 20)
 
     driver.get(WORK_STUDY_URL)
+
     #login
     driver.find_element_by_xpath(LOGIN_USERNAME_XPATH).send_keys(USERNAME)
     driver.find_element_by_xpath(LOGIN_PASSWORD_XPATH).send_keys(PASSWORD)
     driver.find_element_by_xpath(LOGIN_BUTTON_XPATH).click()
 
-    #generate times
+
+    # generate times
     wait.until(EC.presence_of_element_located((By.XPATH, OPEN_TIME_CARD_XPATH)))
     timecard_string = driver.find_element_by_xpath(OPEN_TIME_CARD_XPATH).text
     dates = re.compile("Current pay period is (.*) - (.*).").findall(timecard_string)[0]
@@ -54,37 +61,22 @@ def simulate():
 def generate_times(start_date, end_date):
     # list of start time (14 days) and list of hours worked (14 days)
     start_times = [
-          "9:00 AM",    #day 1      Sunday
-          "9:00 PM",    #day 2      Monday
-          "9:00 PM",    #day 3      Tuesday
-          "9:00 PM",    #day 4      Wednesday
-          "9:00 PM",    #day 5      Thursday
-          "10:00 AM",   #day 6      Friday
-          "9:00 PM",    #day 7      Saturday
-          "9:00 PM",    #day 8      Sunday
-          "9:00 PM",    #day 9      Monday
-          "9:00 PM",    #day 10     Tuesday
-          "9:00 PM",    #day 11     Wednesday
-          "9:00 PM",    #day 12     Thursday
-          "10:00 AM",   #day 13     Friday
-          "9:00 PM",    #day 14     Saturday
+          ("7:30 PM", 2.5),   #day 1      Sunday
+          ("8:00 PM", 2),   #day 2      Monday
+          ("8:00 PM", 0),   #day 3      Tuesday
+          ("8:00 PM", 0),   #day 4      Wednesday
+          ("8:00 PM", 2),   #day 5      Thursday
+          ("10:00 AM", 3),  #day 6      Friday
+          ("8:00 PM", 1),   #day 7      Saturday
+          ("8:00 PM", 0),   #day 8      Sunday
+          ("8:00 PM", 0),   #day 9      Monday
+          ("8:00 PM", 2.5),   #day 10     Tuesday
+          ("8:00 PM", 1.5),   #day 11     Wednesday
+          ("8:00 PM", 1),   #day 12     Thursday
+          ("10:00 AM", 0.5),  #day 13     Friday
+          ("8:00 PM", 0)   #day 14     Saturday
     ]
-    hours = [
-        1.5,#day 1
-        0,  #day 2
-        0,  #day 3
-        0,  #day 4
-        0,  #day 5
-        0.5,#day 6
-        0,  #day 7
-        0,  #day 8
-        0,  #day 9
-        2,  #day 10
-        0,  #day 11
-        0,  #day 12
-        0.5,#day 13
-        1,  #day 14
-    ]
+
     format_datetime = '%m/%d/%Y %I:%M %p'
     format_date     = "%m/%d/%Y"
     format_calendar = "%B %d"
@@ -93,15 +85,16 @@ def generate_times(start_date, end_date):
     end_date = datetime.strptime(end_date, format_calendar).replace(year=datetime.now().year) 
     times = []
     for index in range(0, len(start_times)):
-        if hours[index] == 0:
+        (start_time, hour) = start_times[index]
+        if hour == 0:
             continue    
 
         current_date = start_date + timedelta(days=index)
         if current_date > end_date:
             break
 
-        begin_datetime  = datetime.strptime(current_date.strftime(format_date) + " " + start_times[index], format_datetime)
-        end_datetime    = begin_datetime + timedelta(hours=hours[index])
+        begin_datetime  = datetime.strptime(current_date.strftime(format_date) + " " + start_time, format_datetime)
+        end_datetime    = begin_datetime + timedelta(hours=hour)
 
         begin_time = begin_datetime.strftime(format_datetime)
         end_time = end_datetime.strftime(format_datetime)
