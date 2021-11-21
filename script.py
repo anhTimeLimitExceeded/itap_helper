@@ -27,7 +27,7 @@ def simulate():
     USERNAME = ''
     PASSWORD = ''
 
-    driver = webdriver.Chrome('../selenium-drivers/windows-chromedriver-95.exe')
+    driver = webdriver.Chrome('../selenium-drivers/chromedriver.exe')
     wait = WebDriverWait(driver, 20)
 
     driver.get(WORK_STUDY_URL)
